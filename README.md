@@ -1,0 +1,231 @@
+# wattfrosch-contracts
+
+Single source of truth for the interfaces between all wattfrosch modules.
+Contains definitions only — no logic, no network or database access.
+
+> **Status: skeleton.** The catalogs and records described below are specified but not
+> yet implemented; `version.py` (§7) is implemented. Unimplemented parts are marked
+> with *(not implemented)*.
+
+## Why a separate module?
+So that no module has to install the entire data-fetch stack (HTTP libraries,
+retry logic, etc.) just to know the shape of a record. All modules depend only
+on this lightweight package.
+
+## Dependencies
+- depends on: nothing (except pydantic); otherwise standard library only
+- used by: all modules (fetch, store, transform, pipeline, forecast, dashboard)
+
+Note on architecture: this contract package is the shared core, but it is NOT the
+only dependency point in the system. There are directed dependencies between
+modules as well (e.g. store → fetch, transform → store). See the module map in
+the central knowledge file.
+
+## Contents (contract building blocks)
+
+### 1. MeasurementRecord — exchange format *(not implemented)*
+A single measurement. Immutable and self-validating, implemented with pydantic.
+
+Fields:
+- ts_utc      : datetime (timezone-aware, normalized to UTC; start of the interval)
+- region      : str      (region_code; must exist in REGIONS and be valid at ts_utc)
+- metric      : str      (metric_key; must exist in METRICS)
+- value       : float    (finite; no NaN, no Inf)
+- source      : str      (source_name; must exist in SOURCES)
+- resolution  : str      (ISO-8601 duration; v1 only "PT1H" = hourly)
+
+Design rules:
+- Immutable and self-validating (via pydantic, tolerant mode).
+- The unit lives in the METRIC, not in the record (prevents two units for the
+  same metric).
+- Missing values are NOT rows with value=NULL, but missing rows. Gaps are filled
+  later in transform (time-series generation).
+- The time interval is half-open [start, end); ts_utc is the interval start, and
+  end = start + resolution.
+- Times are UTC only. Pydantic converts incoming values tolerantly.
+- An unknown metric raises an error (this also surfaces external API changes
+  immediately during operation).
+- A region that is not valid at ts_utc raises an error.
+- Parquet mirror (export): same columns as above.
+- ingested_at is NOT part of the record (storage metadata belongs to store).
+
+### 2. METRICS — metric catalog *(not implemented; v1 list to be filled manually)*
+Catalog of all metrics. The structure is fixed; the v1 list is deliberately
+incomplete and filled manually.
+
+Fields per metric:
+- key             : str   (schema "<category>.<name>", e.g. "generation.solar")
+- unit            : str   (e.g. "MW", "EUR/MWh", "°C")
+- category        : str   (generation | consumption | price | weather)
+- aggregation     : str   (time aggregation: mean | sum | max | min)
+- derived         : bool  (true = NOT fetched; only computed in transform)
+- description     : str
+- is_renewable    : bool  (counts as renewable; used for renewable_share)
+- can_be_negative : bool  (e.g. prices, pumped storage)
+- plausible_range : (float, float) or None  (bounds for data-quality checks)
+- display_name    : str   (readable label for the dashboard)
+- valid_from      : date
+- valid_to        : date or None  (None = currently valid)
+
+Rules:
+- Key schema "<category>.<name>"; the category is always the first segment.
+- The key→category map is the leading source of truth and is strictly validated
+  (mismatch between key and category raises an error).
+- An unknown metric raises an error.
+- derived=true → fetch never delivers this metric; it is only produced in transform.
+- aggregation is the time aggregation (hour → day), not spatial.
+- is_renewable is a field on the metric entry; there is no separate map
+  (avoids duplication).
+- Allowed region kind per category:
+  generation, consumption, price → bidding_zone
+  weather                      → weather_point
+- Pumped storage: category=generation, can_be_negative=true, is_renewable=false
+  (a storage unit can be charged from any source, including coal).
+- The v1 catalog is filled completely once implementation starts (about 12 energy
+  types, plus the market price and weather data).
+
+### 3. REGIONS — region catalog *(not implemented)*
+Bidding zones and weather points.
+
+Fields per region:
+- code        : str   (e.g. "DE-LU", "DE-BERLIN")
+- name        : str
+- kind        : str   ("bidding_zone" | "weather_point")
+- country     : str
+- lat, lon    : float or None
+- tz          : str
+- valid_from  : date       (from when this region is valid)
+- valid_to    : date or None  (None = currently valid)
+
+Rules:
+- Code schema: "DE-LU" (country-country) for bidding zones, "DE-BERLIN"
+  (country-city) for weather points. The `kind` field is the actual
+  discriminator — codes alone are NOT unique.
+- Generation/price/load always on the bidding zone; weather on weather points.
+- Bidding zones can change over time (example: "DE-AT-LU" until 2018, afterwards
+  "DE-LU" and "AT" separately). valid_from/valid_to allows correct historical
+  mapping without rewriting data (Slowly Changing Dimension Type 2).
+- A region that is not valid at the requested timestamp raises an error
+  (relevant for backfills before a bidding zone change).
+- v1: four weather points (Berlin, Hamburg, Köln, München).
+
+### 4. SOURCES — source catalog *(not implemented)*
+Fields: name, license, url.
+v1: energy-charts (Fraunhofer ISE), smard (Bundesnetzagentur), open-meteo.
+
+### 5. SOURCE_METRIC_MAP — source → external key *(not implemented; v1 to be filled)*
+The same signal has a different name in each source. This map maps the internal
+metric_key to the source-specific key:
+
+SOURCE_METRIC_MAP = {
+    "smard":         {"generation.solar": "<external key>", ...},
+    "energy-charts": {"generation.solar": "<external key>", ...},
+}
+
+fetch uses this map to request the correct external key. It is deliberately NOT
+part of METRICS, so the metric stays clean.
+
+### 6. SOURCE_REGION_MAP — source → external region key *(not implemented; v1 to be filled)*
+The same zone has a different code in each source. This map translates the internal
+region_code to the source-specific code:
+
+SOURCE_REGION_MAP = {
+    "smard":         {"DE-LU": "<external code>", ...},
+    "energy-charts": {"DE-LU": "<external code>", ...},
+}
+
+Since region history lives in REGIONS, this map needs no time logic of its own —
+one entry per internal code is enough.
+
+### 7. CONTRACT_VERSION *(implemented)*
+One version for the entire contract set (semantic versioning MAJOR.MINOR.PATCH):
+- MINOR: new metric/region/source, new optional field, new allowed resolution
+- MAJOR: rename or remove a field, change a unit or a meaning
+- PATCH: purely internal fixes
+
+Implementation: the static version (single source of truth) is `project.version` in
+`pyproject.toml` — the `uv_build` backend requires a static version and does not support
+dynamic metadata. `src/wattfrosch_contracts/version.py` resolves `CONTRACT_VERSION` from
+the installed package metadata (`importlib.metadata`) and falls back to parsing
+`pyproject.toml` when running from source.
+Release procedure: bump `project.version` in `pyproject.toml` and set the git tag together.
+
+## Responsibility boundaries
+The contract defines structure and value ranges. Stricter, source-specific checks
+belong to the consuming module:
+- Unit conversion into the metric's unit: fetch
+- Strict source/API monitoring: fetch
+- Storage metadata (ingested_at): store
+- Calendar attributes such as daylight-saving classification: store (dim_time)
+- Presentation (e.g. negative pumped-storage values): the consuming module
+
+Pydantic is used in tolerant mode. This means the contract validates structure and
+value ranges (timezone-aware, finite, known keys), but does not enforce the strict
+type origin of a value — a source that suddenly returns "12.5" as text is tolerated.
+Strict monitoring of external APIs is the responsibility of fetch, which knows the
+source and can report deviations most meaningfully.
+
+## Design decisions
+- Definitions only — no logic, no I/O; maximum dependency is pydantic, otherwise
+  standard library only.
+- MeasurementRecord is immutable and self-validating via pydantic.
+- The unit lives in the metric, not in the record.
+- Missing values are missing rows (not NULL); gaps are filled in transform.
+- The interval is half-open [start, end); end = start + resolution.
+- Times are UTC only.
+- resolution is an ISO-8601 duration; v1 allows only "PT1H".
+- Region schema: "DE-LU" / "DE-BERLIN"; `kind` distinguishes bidding zone
+  from weather point.
+- Regions are time-dependent; an invalid region at a given time raises an error.
+- The key↔category map is leading and strictly validated.
+- SOURCE_METRIC_MAP and SOURCE_REGION_MAP are separate from METRICS.
+- Semantic versioning; a new allowed resolution is a MINOR change.
+- Catalogs are filled completely at implementation start; an unknown key raises
+  an error.
+- ingested_at is not part of the contract.
+- v1 uses the UTC day (every day has 24 hours); local market days are a later
+  concern.
+
+## Out of scope
+- Database access, migrations (→ wattfrosch-store)
+- HTTP clients (→ wattfrosch-fetch)
+- Transformation (→ wattfrosch-transform)
+- Orchestration and backfill (→ wattfrosch-pipeline)
+
+## Usage
+Currently importable: `CONTRACT_VERSION` only. The full import surface once implemented:
+
+from wattfrosch_contracts import (
+    MeasurementRecord, METRICS, REGIONS, SOURCES,
+    SOURCE_METRIC_MAP, SOURCE_REGION_MAP, CONTRACT_VERSION,
+)
+
+## Structure
+
+src/wattfrosch_contracts/
+    __init__.py      # package docstring; re-exports CONTRACT_VERSION
+    version.py       # CONTRACT_VERSION (resolved from pyproject.toml version)
+    py.typed         # PEP 561 marker
+
+tests/               # root-level (pytest resolves imports via pythonpath = ["src"])
+pyproject.toml
+
+## Development
+
+Tooling is uv (Python 3.13, `requires-python >= 3.13`):
+
+```bash
+uv sync --dev                          # install deps into .venv
+uv run pytest                          # tests
+uv run ruff format --check .           # formatting check
+uv run ruff check .                    # lint
+uv run mypy .                          # type check
+```
+
+CI (`.github/workflows/`) runs on every push/PR: `ruff format --check`, `ruff check`,
+`pytest` — all three must pass.
+
+## Open points
+- Complete the v1 metric catalog (manually).
+- Fill SOURCE_METRIC_MAP v1 and SOURCE_REGION_MAP v1.
+- Maintain the bidding-zone history.

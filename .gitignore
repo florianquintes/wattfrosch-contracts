@@ -1,0 +1,47 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# --- Distribution / Packaging ---
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --- uv / virtuelle Umgebung ---
+.venv/
+venv/
+uv.lock
+
+# --- Testing / Linting / Typing ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- IDE / Editor ---
+.idea/
+.vscode/
+*.swp
+
+# --- Secrets / lokale Konfiguration ---
+.env
+.env.*
+!.env.example
+
+# --- Daten (Data-Project) ---
+data/
+*.parquet
+*.csv
+
+# --- Betriebssystem ---
+.DS_Store
+
+# --- Agent-Anweisungen ---
+AGENTS.md
+
+# --- Lokale Planung ---
+TODO.md

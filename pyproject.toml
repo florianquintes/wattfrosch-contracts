@@ -1,0 +1,23 @@
+[project]
+name = "wattfrosch-contracts"
+version = "0.1.0"
+description = "Shared contracts (models + catalogs) for the wattfrosch module family"
+authors = [
+    { name = "Dr. Florian Quintes", email = "florian@fam-quintes.de" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[build-system]
+requires = ["uv_build>=0.12.18,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "ruff>=0.17.0",
+]
