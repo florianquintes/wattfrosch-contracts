@@ -27,7 +27,10 @@ the central knowledge file.
 A single measurement. Immutable and self-validating, implemented with pydantic.
 
 Fields:
-- ts_utc      : datetime (timezone-aware, normalized to UTC; start of the interval)
+- ts_utc      : datetime (timezone-aware, normalized to UTC; start of the interval).
+                Typed as pydantic `AwareDatetime`: tz-awareness is enforced at the
+                type level — naive input is rejected; non-UTC offsets are
+                converted to UTC.
 - region      : str      (region_code; must exist in REGIONS and be valid at ts_utc)
 - metric      : str      (metric_key; must exist in METRICS)
 - value       : float    (finite; no NaN, no Inf)
@@ -35,14 +38,16 @@ Fields:
 - resolution  : str      (ISO-8601 duration; v1 only "PT1H" = hourly)
 
 Design rules:
-- Immutable and self-validating (via pydantic, tolerant mode).
+- Immutable and self-validating (via pydantic).
 - The unit lives in the METRIC, not in the record (prevents two units for the
   same metric).
 - Missing values are NOT rows with value=NULL, but missing rows. Gaps are filled
   later in transform (time-series generation).
 - The time interval is half-open [start, end); ts_utc is the interval start, and
   end = start + resolution.
-- Times are UTC only. Pydantic converts incoming values tolerantly.
+- Times are UTC only. `ts_utc` is typed as pydantic `AwareDatetime`: naive input
+  is rejected (tz-awareness is required to get the full time information);
+  non-UTC offsets are converted to UTC.
 - An unknown metric raises an error (this also surfaces external API changes
   immediately during operation).
 - A region that is not valid at ts_utc raises an error.
@@ -159,11 +164,13 @@ belong to the consuming module:
 - Calendar attributes such as daylight-saving classification: store (dim_time)
 - Presentation (e.g. negative pumped-storage values): the consuming module
 
-Pydantic is used in tolerant mode. This means the contract validates structure and
-value ranges (timezone-aware, finite, known keys), but does not enforce the strict
-type origin of a value — a source that suddenly returns "12.5" as text is tolerated.
-Strict monitoring of external APIs is the responsibility of fetch, which knows the
-source and can report deviations most meaningfully.
+Pydantic is used in lenient mode (structure and value ranges validated, strict
+type origin not enforced). Exception: `ts_utc` is typed as `AwareDatetime` —
+tz-awareness is strictly enforced so the record always carries full time
+information; naive input is rejected. Lenient typing elsewhere means a source
+that suddenly returns "12.5" as text is tolerated. Strict monitoring of
+external APIs is the responsibility of fetch, which knows the source and can
+report deviations most meaningfully.
 
 ## Design decisions
 - Definitions only — no logic, no I/O; maximum dependency is pydantic, otherwise
@@ -219,11 +226,11 @@ uv sync --dev                          # install deps into .venv
 uv run pytest                          # tests
 uv run ruff format --check .           # formatting check
 uv run ruff check .                    # lint
-uv run mypy .                          # type check
+uv run pyrefly check .                 # type check
 ```
 
 CI (`.github/workflows/`) runs on every push/PR: `ruff format --check`, `ruff check`,
-`pytest` — all three must pass.
+`pytest`, `pyrefly check` — all must pass.
 
 ## Open points
 - Complete the v1 metric catalog (manually).
