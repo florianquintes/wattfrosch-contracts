@@ -30,7 +30,7 @@ Fields:
 - ts_utc      : datetime (timezone-aware, normalized to UTC; start of the interval).
                 Typed as pydantic `AwareDatetime`: tz-awareness is enforced at the
                 type level — naive input is rejected; non-UTC offsets are
-                converted to UTC.
+                converted to UTC; unix timestamps (int/float) are rejected.
 - region      : str      (region_code; must exist in REGIONS and be valid at ts_utc)
 - metric      : str      (metric_key; must exist in METRICS)
 - value       : float    (finite; no NaN, no Inf)
@@ -47,7 +47,8 @@ Design rules:
   end = start + resolution.
 - Times are UTC only. `ts_utc` is typed as pydantic `AwareDatetime`: naive input
   is rejected (tz-awareness is required to get the full time information);
-  non-UTC offsets are converted to UTC.
+  non-UTC offsets are converted to UTC; unix timestamps (int/float) are
+  rejected.
 - An unknown metric raises an error (this also surfaces external API changes
   immediately during operation).
 - A region that is not valid at ts_utc raises an error.
@@ -108,7 +109,7 @@ Rules:
   discriminator — codes alone are NOT unique.
 - Generation/price/load always on the bidding zone; weather on weather points.
 - Bidding zones can change over time (example: "DE-AT-LU" until 2018, afterwards
-  "DE-LU" and "AT" separately). valid_from/valid_to allows correct historical
+  "DE-LU" separately). valid_from/valid_to allows correct historical
   mapping without rewriting data (Slowly Changing Dimension Type 2).
 - A region that is not valid at the requested timestamp raises an error
   (relevant for backfills before a bidding zone change).
@@ -167,7 +168,8 @@ belong to the consuming module:
 Pydantic is used in lenient mode (structure and value ranges validated, strict
 type origin not enforced). Exception: `ts_utc` is typed as `AwareDatetime` —
 tz-awareness is strictly enforced so the record always carries full time
-information; naive input is rejected. Lenient typing elsewhere means a source
+information; naive input is rejected, as are unix timestamps (int/float).
+Lenient typing elsewhere means a source
 that suddenly returns "12.5" as text is tolerated. Strict monitoring of
 external APIs is the responsibility of fetch, which knows the source and can
 report deviations most meaningfully.

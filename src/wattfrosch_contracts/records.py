@@ -32,6 +32,13 @@ class MeasurementRecord(BaseModel):
     source: str
     resolution: Literal["PT1H"]
 
+    @field_validator("ts_utc", mode="before")
+    @classmethod
+    def _reject_unix_timestamps(cls, v: object) -> object:
+        if isinstance(v, (int, float)):
+            raise errors.ts_utc_not_datetime_error(v)
+        return v
+
     @field_validator("ts_utc")
     @classmethod
     def _normalize_to_utc(cls, v: datetime) -> datetime:

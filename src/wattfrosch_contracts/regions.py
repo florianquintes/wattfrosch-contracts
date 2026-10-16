@@ -21,7 +21,7 @@ BIDDING_ZONE: Final = "bidding_zone"
 WEATHER_POINT: Final = "weather_point"
 
 REGIONS: Final[Mapping[str, RegionStub]] = {
-    # Bidding-zone history: DE-AT-LU until 2018-09-30, DE-LU and AT afterwards.
+    # Bidding-zone history: DE-AT-LU until 2018-09-30, DE-LU afterwards.
     "DE-AT-LU": RegionStub(
         code="DE-AT-LU",
         kind=BIDDING_ZONE,
@@ -30,12 +30,6 @@ REGIONS: Final[Mapping[str, RegionStub]] = {
     ),
     "DE-LU": RegionStub(
         code="DE-LU",
-        kind=BIDDING_ZONE,
-        valid_from=date(2018, 10, 1),
-        valid_to=None,
-    ),
-    "AT": RegionStub(
-        code="AT",
         kind=BIDDING_ZONE,
         valid_from=date(2018, 10, 1),
         valid_to=None,

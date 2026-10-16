@@ -14,6 +14,15 @@ UNKNOWN_METRIC = "unknown_metric"
 UNKNOWN_SOURCE = "unknown_source"
 UNKNOWN_REGION = "unknown_region"
 REGION_NOT_VALID = "region_not_valid"
+TS_UTC_NOT_DATETIME = "ts_utc_not_datetime"
+
+
+def ts_utc_not_datetime_error(value: object) -> PydanticCustomError:
+    return PydanticCustomError(
+        f"{ERROR_PREFIX}.{TS_UTC_NOT_DATETIME}",
+        "ts_utc must be a datetime or ISO string, not a unix timestamp: {value!r}",
+        {"value": value},
+    )
 
 
 def unknown_metric_error(metric: str) -> PydanticCustomError:
