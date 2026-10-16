@@ -15,6 +15,8 @@ UNKNOWN_SOURCE = "unknown_source"
 UNKNOWN_REGION = "unknown_region"
 REGION_NOT_VALID = "region_not_valid"
 TS_UTC_NOT_DATETIME = "ts_utc_not_datetime"
+METRIC_CATEGORY_MISMATCH = "metric_category_mismatch"
+METRIC_REGION_KIND_MISMATCH = "metric_region_kind_mismatch"
 
 
 def ts_utc_not_datetime_error(value: object) -> PydanticCustomError:
@@ -54,4 +56,23 @@ def region_not_valid_error(region: str, ts: str) -> PydanticCustomError:
         f"{ERROR_PREFIX}.{REGION_NOT_VALID}",
         "Region '{region}' is not valid at {ts}",
         {"region": region, "ts": ts},
+    )
+
+
+def metric_category_mismatch_error(key: str, category: str) -> PydanticCustomError:
+    return PydanticCustomError(
+        f"{ERROR_PREFIX}.{METRIC_CATEGORY_MISMATCH}",
+        "Metric key '{key}' does not match category '{category}' (key schema "
+        "'<category>.<name>')",
+        {"key": key, "category": category},
+    )
+
+
+def metric_region_kind_mismatch_error(
+    metric: str, region: str, kind: str
+) -> PydanticCustomError:
+    return PydanticCustomError(
+        f"{ERROR_PREFIX}.{METRIC_REGION_KIND_MISMATCH}",
+        "Metric '{metric}' is not allowed on region kind '{kind}' (region '{region}')",
+        {"metric": metric, "region": region, "kind": kind},
     )

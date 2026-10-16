@@ -3,9 +3,9 @@
 Single source of truth for the interfaces between all wattfrosch modules.
 Contains definitions only — no logic, no network or database access.
 
-> **Status: skeleton.** The catalogs and records described below are specified but not
-> yet implemented; `version.py` (§7) is implemented. Unimplemented parts are marked
-> with *(not implemented)*.
+> **Status: skeleton.** `version.py` (§7), `MeasurementRecord` (§1) and the METRICS
+> catalog (§2) are implemented. The remaining catalogs are marked with
+> *(not implemented)*.
 
 ## Why a separate module?
 So that no module has to install the entire data-fetch stack (HTTP libraries,
@@ -23,7 +23,7 @@ the central knowledge file.
 
 ## Contents (contract building blocks)
 
-### 1. MeasurementRecord — exchange format *(not implemented)*
+### 1. MeasurementRecord — exchange format
 A single measurement. Immutable and self-validating, implemented with pydantic.
 
 Fields:
@@ -52,10 +52,13 @@ Design rules:
 - An unknown metric raises an error (this also surfaces external API changes
   immediately during operation).
 - A region that is not valid at ts_utc raises an error.
+- The metric's category must match the region kind: generation, consumption and
+  price require a bidding_zone; weather requires a weather_point (mismatch
+  raises).
 - Parquet mirror (export): same columns as above.
 - ingested_at is NOT part of the record (storage metadata belongs to store).
 
-### 2. METRICS — metric catalog *(not implemented; v1 list to be filled manually)*
+### 2. METRICS — metric catalog
 Catalog of all metrics. The structure is fixed; the v1 list is deliberately
 incomplete and filled manually.
 
@@ -87,6 +90,9 @@ Rules:
   weather                      → weather_point
 - Pumped storage: category=generation, can_be_negative=true, is_renewable=false
   (a storage unit can be charged from any source, including coal).
+- weather.temperature_2m is in kelvin (K); its plausibility bounds are the
+  coldest (170 K) and hottest (345 K) temperatures measured on earth. Fetch
+  converts from source units.
 - The v1 catalog is filled completely once implementation starts (about 12 energy
   types, plus the market price and weather data).
 
@@ -202,7 +208,8 @@ report deviations most meaningfully.
 - Orchestration and backfill (→ wattfrosch-pipeline)
 
 ## Usage
-Currently importable: `CONTRACT_VERSION` only. The full import surface once implemented:
+Currently importable: `CONTRACT_VERSION`, `MeasurementRecord`, `METRICS` and the
+error-type constants. The full import surface once implemented:
 
 from wattfrosch_contracts import (
     MeasurementRecord, METRICS, REGIONS, SOURCES,
@@ -212,8 +219,11 @@ from wattfrosch_contracts import (
 ## Structure
 
 src/wattfrosch_contracts/
-    __init__.py      # package docstring; re-exports CONTRACT_VERSION
+    __init__.py      # package docstring; re-exports the public surface
     version.py       # CONTRACT_VERSION (resolved from pyproject.toml version)
+    records.py       # MeasurementRecord (§1)
+    metrics.py       # METRICS catalog (§2)
+    errors.py        # contract error types (PydanticCustomError factories)
     py.typed         # PEP 561 marker
 
 tests/               # root-level (pytest resolves imports via pythonpath = ["src"])

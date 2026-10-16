@@ -123,6 +123,29 @@ def test_unknown_region_rejected() -> None:
     assert error_type(excinfo.value) == "wattfrosch.unknown_region"
 
 
+# --- Category → region-kind rule ------------------------------------------
+
+
+def test_weather_metric_on_bidding_zone_rejected() -> None:
+    with pytest.raises(ValidationError) as excinfo:
+        make_record(metric="weather.temperature_2m", region="DE-LU", value=280.0)
+    assert error_type(excinfo.value) == "wattfrosch.metric_region_kind_mismatch"
+
+
+def test_generation_metric_on_weather_point_rejected() -> None:
+    with pytest.raises(ValidationError) as excinfo:
+        make_record(metric="generation.solar", region="DE-BERLIN")
+    assert error_type(excinfo.value) == "wattfrosch.metric_region_kind_mismatch"
+
+
+def test_weather_metric_on_weather_point_accepted() -> None:
+    record = make_record(
+        metric="weather.temperature_2m", region="DE-BERLIN", value=280.0
+    )
+    assert record.metric == "weather.temperature_2m"
+    assert record.region == "DE-BERLIN"
+
+
 # --- Region validity + bidding-zone history -------------------------------
 
 

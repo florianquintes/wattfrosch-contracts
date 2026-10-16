@@ -5,8 +5,9 @@ the record; missing values are missing rows, never NULL; the interval is
 half-open [ts_utc, ts_utc + resolution); times are UTC only.
 """
 
+from collections.abc import Mapping
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Final, Literal
 
 from pydantic import (
     AwareDatetime,
@@ -18,8 +19,15 @@ from pydantic import (
 
 from wattfrosch_contracts import errors
 from wattfrosch_contracts.metrics import METRICS
-from wattfrosch_contracts.regions import REGIONS
+from wattfrosch_contracts.regions import BIDDING_ZONE, REGIONS, WEATHER_POINT
 from wattfrosch_contracts.sources import SOURCES
+
+_REGION_KIND_BY_CATEGORY: Final[Mapping[str, str]] = {
+    "generation": BIDDING_ZONE,
+    "consumption": BIDDING_ZONE,
+    "price": BIDDING_ZONE,
+    "weather": WEATHER_POINT,
+}
 
 
 class MeasurementRecord(BaseModel):
@@ -59,4 +67,9 @@ class MeasurementRecord(BaseModel):
             and (region.valid_to is None or ts_date < region.valid_to)
         ):
             raise errors.region_not_valid_error(self.region, self.ts_utc.isoformat())
+        kind = _REGION_KIND_BY_CATEGORY[METRICS[self.metric].category]
+        if region.kind != kind:
+            raise errors.metric_region_kind_mismatch_error(
+                self.metric, self.region, region.kind
+            )
         return self
