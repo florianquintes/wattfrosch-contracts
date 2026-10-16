@@ -96,7 +96,7 @@ Rules:
 - The v1 catalog is filled completely once implementation starts (about 12 energy
   types, plus the market price and weather data).
 
-### 3. REGIONS — region catalog *(not implemented)*
+### 3. REGIONS — region catalog
 Bidding zones and weather points.
 
 Fields per region:
@@ -120,6 +120,12 @@ Rules:
 - A region that is not valid at the requested timestamp raises an error
   (relevant for backfills before a bidding zone change).
 - v1: four weather points (Berlin, Hamburg, Köln, München).
+- The code's country prefix must match the `country` field (comma-separated
+  list for multi-country zones: "DE-AT-LU" → country "DE,AT,LU"); mismatch
+  raises `wattfrosch.region_code_mismatch`. Coordinates are bounds-checked
+  (lat −90..90, lon −180..180; `wattfrosch.region_coords_out_of_range`).
+- AT is not an allowed region (removed from the catalog); only the historical
+  DE-AT-LU zone exists for backfills before 2018-10-01.
 
 ### 4. SOURCES — source catalog *(not implemented)*
 Fields: name, license, url.
@@ -208,8 +214,9 @@ report deviations most meaningfully.
 - Orchestration and backfill (→ wattfrosch-pipeline)
 
 ## Usage
-Currently importable: `CONTRACT_VERSION`, `MeasurementRecord`, `METRICS` and the
-error-type constants. The full import surface once implemented:
+Currently importable: `CONTRACT_VERSION`, `MeasurementRecord`, `METRICS`,
+`REGIONS` and the error-type constants. The full import surface once
+implemented:
 
 from wattfrosch_contracts import (
     MeasurementRecord, METRICS, REGIONS, SOURCES,
@@ -223,6 +230,7 @@ src/wattfrosch_contracts/
     version.py       # CONTRACT_VERSION (resolved from pyproject.toml version)
     records.py       # MeasurementRecord (§1)
     metrics.py       # METRICS catalog (§2)
+    regions.py       # REGIONS catalog (§3)
     errors.py        # contract error types (PydanticCustomError factories)
     py.typed         # PEP 561 marker
 
@@ -245,6 +253,5 @@ CI (`.github/workflows/`) runs on every push/PR: `ruff format --check`, `ruff ch
 `pytest`, `pyrefly check` — all must pass.
 
 ## Open points
-- Complete the v1 metric catalog (manually).
 - Fill SOURCE_METRIC_MAP v1 and SOURCE_REGION_MAP v1.
 - Maintain the bidding-zone history.

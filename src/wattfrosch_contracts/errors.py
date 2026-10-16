@@ -17,6 +17,8 @@ REGION_NOT_VALID = "region_not_valid"
 TS_UTC_NOT_DATETIME = "ts_utc_not_datetime"
 METRIC_CATEGORY_MISMATCH = "metric_category_mismatch"
 METRIC_REGION_KIND_MISMATCH = "metric_region_kind_mismatch"
+REGION_CODE_MISMATCH = "region_code_mismatch"
+REGION_COORDS_OUT_OF_RANGE = "region_coords_out_of_range"
 
 
 def ts_utc_not_datetime_error(value: object) -> PydanticCustomError:
@@ -75,4 +77,23 @@ def metric_region_kind_mismatch_error(
         f"{ERROR_PREFIX}.{METRIC_REGION_KIND_MISMATCH}",
         "Metric '{metric}' is not allowed on region kind '{kind}' (region '{region}')",
         {"metric": metric, "region": region, "kind": kind},
+    )
+
+
+def region_code_mismatch_error(code: str, country: str) -> PydanticCustomError:
+    return PydanticCustomError(
+        f"{ERROR_PREFIX}.{REGION_CODE_MISMATCH}",
+        "Region code '{code}' does not start with a country listed in "
+        "'{country}' (comma-separated)",
+        {"code": code, "country": country},
+    )
+
+
+def region_coords_out_of_range_error(
+    code: str, field: str, value: float
+) -> PydanticCustomError:
+    return PydanticCustomError(
+        f"{ERROR_PREFIX}.{REGION_COORDS_OUT_OF_RANGE}",
+        "Region '{code}' has {field}={value} outside its valid range",
+        {"code": code, "field": field, "value": value},
     )
