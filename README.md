@@ -3,10 +3,6 @@
 Single source of truth for the interfaces between all wattfrosch modules.
 Contains definitions only — no logic, no network or database access.
 
-> **Status: skeleton.** `version.py` (§7), `MeasurementRecord` (§1) and the METRICS
-> catalog (§2) are implemented. The remaining catalogs are marked with
-> *(not implemented)*.
-
 ## Why a separate module?
 So that no module has to install the entire data-fetch stack (HTTP libraries,
 retry logic, etc.) just to know the shape of a record. All modules depend only
@@ -96,8 +92,8 @@ Rules:
 - Both pumped-storage entries (generation.pumped_storage and
   consumption.pumped_storage) use negative = charging (mirrored convention).
 - consumption.residual_load can be negative (renewable generation exceeds load).
-- The v1 catalog has 20 entries (14 energy types, market price, 4 weather); new
-  metrics are added as needed.
+- The v1 catalog has 21 entries (13 generation, 3 consumption, 1 price,
+  4 weather); new metrics are added as needed.
 
 ### 3. REGIONS — region catalog
 Bidding zones and weather points.

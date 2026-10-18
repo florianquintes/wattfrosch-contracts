@@ -1,8 +1,8 @@
 """Tests for SOURCES and the translation maps (README §4–§6, TODO Issue 6).
 
 Covers catalog integrity, the https-url rule, map integrity (every referenced
-source/metric/region exists in the catalogs) and the fill status of the v1
-stubs: smard's metric map stays empty until fetch planning.
+source/metric/region exists in the catalogs) and the fill status: the smard
+metric map covers all energy metrics except oil (no documented filter).
 """
 
 import pytest
@@ -110,7 +110,7 @@ def test_no_map_references_at() -> None:
         assert not any(key.startswith("AT") for key in translations)
 
 
-# --- Fill status of the v1 stubs -------------------------------------------
+# --- Fill status -------------------------------------------------------------
 
 
 def test_smard_metric_map_no_weather() -> None:
