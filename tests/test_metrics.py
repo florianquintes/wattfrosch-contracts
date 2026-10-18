@@ -41,7 +41,7 @@ def error_type(exc: ValidationError) -> str:
 
 
 def test_catalog_not_empty() -> None:
-    assert len(METRICS) >= 17
+    assert len(METRICS) >= 20
 
 
 def test_all_keys_follow_category_schema() -> None:
@@ -133,6 +133,7 @@ def test_renewable_metrics() -> None:
         "generation.wind_offshore",
         "generation.biomass",
         "generation.hydro",
+        "generation.other_renewable",
     }
 
 

@@ -93,8 +93,11 @@ Rules:
 - weather.temperature_2m is in kelvin (K); its plausibility bounds are the
   coldest (170 K) and hottest (345 K) temperatures measured on earth. Fetch
   converts from source units.
-- The v1 catalog is filled completely once implementation starts (about 12 energy
-  types, plus the market price and weather data).
+- Both pumped-storage entries (generation.pumped_storage and
+  consumption.pumped_storage) use negative = charging (mirrored convention).
+- consumption.residual_load can be negative (renewable generation exceeds load).
+- The v1 catalog has 20 entries (14 energy types, market price, 4 weather); new
+  metrics are added as needed.
 
 ### 3. REGIONS — region catalog
 Bidding zones and weather points.
@@ -127,11 +130,13 @@ Rules:
 - AT is not an allowed region (removed from the catalog); only the historical
   DE-AT-LU zone exists for backfills before 2018-10-01.
 
-### 4. SOURCES — source catalog *(not implemented)*
-Fields: name, license, url.
-v1: energy-charts (Fraunhofer ISE), smard (Bundesnetzagentur), open-meteo.
+### 4. SOURCES — source catalog *(implemented)*
+Fields: name, license, url. The url must be https
+(`wattfrosch.source_url_not_https`).
+v1: energy-charts (Fraunhofer ISE), smard (Bundesnetzagentur), open-meteo —
+all CC BY 4.0 (best-effort values, verify before release).
 
-### 5. SOURCE_METRIC_MAP — source → external key *(not implemented; v1 to be filled)*
+### 5. SOURCE_METRIC_MAP — source → external key *(implemented; partially filled)*
 The same signal has a different name in each source. This map maps the internal
 metric_key to the source-specific key:
 
@@ -141,9 +146,15 @@ SOURCE_METRIC_MAP = {
 }
 
 fetch uses this map to request the correct external key. It is deliberately NOT
-part of METRICS, so the metric stays clean.
+part of METRICS, so the metric stays clean. Fill status: energy-charts maps
+every energy metric to itself (same-key assumption); open-meteo maps the four
+weather metrics to its raw API variable names; smard maps the energy metrics
+to the numeric filter IDs from the SMARD API readme (price filter 4169 is
+documented separately from that readme's filter list; generation.oil has no
+documented smard filter). Every referenced source and internal metric key must
+exist in SOURCES/METRICS.
 
-### 6. SOURCE_REGION_MAP — source → external region key *(not implemented; v1 to be filled)*
+### 6. SOURCE_REGION_MAP — source → external region key *(implemented)*
 The same zone has a different code in each source. This map translates the internal
 region_code to the source-specific code:
 
@@ -153,7 +164,10 @@ SOURCE_REGION_MAP = {
 }
 
 Since region history lives in REGIONS, this map needs no time logic of its own —
-one entry per internal code is enough.
+one entry per internal code is enough. Fill status: smard and energy-charts
+cover the bidding zones (smard uses the same codes, energy-charts lowercase
+ids); open-meteo covers the weather points with "lat,lon" strings. Every
+referenced source and internal region code must exist in SOURCES/REGIONS.
 
 ### 7. CONTRACT_VERSION *(implemented)*
 One version for the entire contract set (semantic versioning MAJOR.MINOR.PATCH):
@@ -215,8 +229,8 @@ report deviations most meaningfully.
 
 ## Usage
 Currently importable: `CONTRACT_VERSION`, `MeasurementRecord`, `METRICS`,
-`REGIONS` and the error-type constants. The full import surface once
-implemented:
+`REGIONS`, `SOURCES`, `SOURCE_METRIC_MAP`, `SOURCE_REGION_MAP` and the
+error-type constants (the full import surface):
 
 from wattfrosch_contracts import (
     MeasurementRecord, METRICS, REGIONS, SOURCES,
@@ -231,6 +245,7 @@ src/wattfrosch_contracts/
     records.py       # MeasurementRecord (§1)
     metrics.py       # METRICS catalog (§2)
     regions.py       # REGIONS catalog (§3)
+    sources.py       # SOURCES catalog + SOURCE_METRIC_MAP + SOURCE_REGION_MAP (§4–§6)
     errors.py        # contract error types (PydanticCustomError factories)
     py.typed         # PEP 561 marker
 
@@ -253,5 +268,5 @@ CI (`.github/workflows/`) runs on every push/PR: `ruff format --check`, `ruff ch
 `pytest`, `pyrefly check` — all must pass.
 
 ## Open points
-- Fill SOURCE_METRIC_MAP v1 and SOURCE_REGION_MAP v1.
+- Verify the best-effort license/url values and external codes in the maps.
 - Maintain the bidding-zone history.

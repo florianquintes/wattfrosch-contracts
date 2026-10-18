@@ -162,11 +162,19 @@ METRICS: Final[Mapping[str, MetricEntry]] = {
             plausible_range=(0.0, 100_000.0),
         ),
         _entry(
+            "generation.other_renewable",
+            "MW",
+            "generation",
+            "Other renewable power generation (not covered by the other keys)",
+            is_renewable=True,
+            plausible_range=(0.0, 100_000.0),
+        ),
+        _entry(
             "generation.pumped_storage",
             "MW",
             "generation",
-            "Pumped storage (negative = charging). A storage unit can be "
-            "charged from any source, including coal.",
+            "Pumped storage generation (negative = charging). A storage unit "
+            "can be charged from any source, including coal.",
             can_be_negative=True,
             plausible_range=(-10_000.0, 10_000.0),
         ),
@@ -176,6 +184,24 @@ METRICS: Final[Mapping[str, MetricEntry]] = {
             "consumption",
             "Electricity consumption (load)",
             plausible_range=(0.0, 100_000.0),
+        ),
+        _entry(
+            "consumption.residual_load",
+            "MW",
+            "consumption",
+            "Residual load (load minus renewable generation); negative when "
+            "renewable generation exceeds load",
+            can_be_negative=True,
+            plausible_range=(-50_000.0, 100_000.0),
+        ),
+        _entry(
+            "consumption.pumped_storage",
+            "MW",
+            "consumption",
+            "Pumped storage consumption (negative = charging, mirroring the "
+            "generation convention)",
+            can_be_negative=True,
+            plausible_range=(-10_000.0, 10_000.0),
         ),
         _entry(
             "price.day_ahead",

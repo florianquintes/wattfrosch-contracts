@@ -19,6 +19,8 @@ METRIC_CATEGORY_MISMATCH = "metric_category_mismatch"
 METRIC_REGION_KIND_MISMATCH = "metric_region_kind_mismatch"
 REGION_CODE_MISMATCH = "region_code_mismatch"
 REGION_COORDS_OUT_OF_RANGE = "region_coords_out_of_range"
+SOURCE_NAME_MISMATCH = "source_name_mismatch"
+SOURCE_URL_NOT_HTTPS = "source_url_not_https"
 
 
 def ts_utc_not_datetime_error(value: object) -> PydanticCustomError:
@@ -96,4 +98,20 @@ def region_coords_out_of_range_error(
         f"{ERROR_PREFIX}.{REGION_COORDS_OUT_OF_RANGE}",
         "Region '{code}' has {field}={value} outside its valid range",
         {"code": code, "field": field, "value": value},
+    )
+
+
+def source_name_mismatch_error(key: str, name: str) -> PydanticCustomError:
+    return PydanticCustomError(
+        f"{ERROR_PREFIX}.{SOURCE_NAME_MISMATCH}",
+        "Source key '{key}' does not match its name field '{name}'",
+        {"key": key, "name": name},
+    )
+
+
+def source_url_not_https_error(name: str, url: str) -> PydanticCustomError:
+    return PydanticCustomError(
+        f"{ERROR_PREFIX}.{SOURCE_URL_NOT_HTTPS}",
+        "Source '{name}' has a non-https url: '{url}'",
+        {"name": name, "url": url},
     )

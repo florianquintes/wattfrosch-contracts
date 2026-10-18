@@ -6,6 +6,8 @@ from wattfrosch_contracts.errors import (
     REGION_CODE_MISMATCH,
     REGION_COORDS_OUT_OF_RANGE,
     REGION_NOT_VALID,
+    SOURCE_NAME_MISMATCH,
+    SOURCE_URL_NOT_HTTPS,
     TS_UTC_NOT_DATETIME,
     UNKNOWN_METRIC,
     UNKNOWN_REGION,
@@ -14,6 +16,11 @@ from wattfrosch_contracts.errors import (
 from wattfrosch_contracts.metrics import METRICS
 from wattfrosch_contracts.records import MeasurementRecord
 from wattfrosch_contracts.regions import REGIONS
+from wattfrosch_contracts.sources import (
+    SOURCE_METRIC_MAP,
+    SOURCE_REGION_MAP,
+    SOURCES,
+)
 from wattfrosch_contracts.version import CONTRACT_VERSION
 
 __all__ = [
@@ -25,6 +32,11 @@ __all__ = [
     "REGION_CODE_MISMATCH",
     "REGION_COORDS_OUT_OF_RANGE",
     "REGION_NOT_VALID",
+    "SOURCES",
+    "SOURCE_METRIC_MAP",
+    "SOURCE_NAME_MISMATCH",
+    "SOURCE_REGION_MAP",
+    "SOURCE_URL_NOT_HTTPS",
     "TS_UTC_NOT_DATETIME",
     "UNKNOWN_METRIC",
     "UNKNOWN_REGION",
