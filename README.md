@@ -126,8 +126,13 @@ uv sync --dev
 from datetime import datetime, UTC
 
 from wattfrosch_contracts import (
-    MeasurementRecord, METRICS, REGIONS, SOURCES,
-    SOURCE_METRIC_MAP, SOURCE_REGION_MAP, CONTRACT_VERSION,
+    MeasurementRecord,
+    METRICS,
+    REGIONS,
+    SOURCES,
+    SOURCE_METRIC_MAP,
+    SOURCE_REGION_MAP,
+    CONTRACT_VERSION,
 )
 
 record = MeasurementRecord(
@@ -139,9 +144,9 @@ record = MeasurementRecord(
     resolution="PT1H",
 )
 
-record.value        # 42150.0
-METRICS[record.metric].unit   # "MW"
-CONTRACT_VERSION    # "0.1.0"
+record.value  # 42150.0
+METRICS[record.metric].unit  # "MW"
+CONTRACT_VERSION  # "0.1.0"
 ```
 
 Construction validates everything: the metric, source and region keys must
